@@ -9,7 +9,7 @@ COPY package*.json ./
 # Install dependencies (including dev)
 RUN npm ci
 
-# Copy entire source code
+# Copy everything
 COPY . .
 
 # Generate Prisma client
@@ -24,25 +24,27 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copy built output, prisma schema, and essential files
+# Copy built files, Prisma schema, and production dependencies
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Install only production dependencies
+# Install only production deps
 RUN npm ci --omit=dev
 
-# Expose your app port
+# Install Prisma CLI globally (fixes the “not found” issue)
+RUN npm install -g prisma
+
+# Expose app port
 EXPOSE 1234
 
-# Add optional health check
-HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -f http://localhost:1234 || exit 1
+# Healthcheck (optional)
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD wget -qO- http://localhost:1234 || exit 1
 
-# Run migrations, seed (JS), and start app
+# Run migrations, seed, then start
 CMD echo "🚀 Running migrations..." && \
-    npx prisma migrate deploy || true && \
-    echo "🌱 Running JS seed file..." && \
-    node dist/prisma/seed.js || echo "⚠️ Seeding skipped (possibly no data)" && \
+    prisma migrate deploy && \
+    echo "🌱 Running seed (JS)..." && \
+    node dist/prisma/seed.js || echo "⚠️ Seed failed/skipped" && \
     echo "🟢 Starting server..." && \
     node dist/src/app.js
