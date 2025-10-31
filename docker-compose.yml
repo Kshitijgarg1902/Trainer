@@ -1,5 +1,3 @@
-version: "1.0"
-
 services:
   postgres:
     image: postgres:15
@@ -13,10 +11,10 @@ services:
 
   server:
     build:
-      context: ./server
+      context: ./Server
     container_name: server
     env_file:
-      - ./server/.env
+      - ./Server/.env
     ports:
       - "1234:1234"
     depends_on:
@@ -24,7 +22,7 @@ services:
 
   client:
     build:
-      context: ./client
+      context: ./Client
     container_name: client
     ports:
       - "3000:80"
