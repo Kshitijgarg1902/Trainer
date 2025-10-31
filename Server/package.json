@@ -1,30 +1,41 @@
-"dependencies": {
-  "@prisma/client": "^6.12.0",
-  "cookie-parser": "^1.4.7",
-  "cors": "^2.8.5",
-  "dotenv": "^16.5.0",
-  "express": "^5.1.0",
-  "jsonwebtoken": "^9.0.2",
-  "morgan": "^1.10.0",
-  "twilio": "^5.7.1",
-  "zod": "^3.25.57"
-},
-"devDependencies": {
-  "@types/cookie-parser": "^1.4.9",
-  "@types/cors": "^2.8.19",
-  "@types/express": "^5.0.3",
-  "@types/jsonwebtoken": "^9.0.9",
-  "@types/morgan": "^1.9.10",
-  "@types/node": "^22.15.30",
-  "@typescript-eslint/eslint-plugin": "^8.34.0",
-  "@typescript-eslint/parser": "^8.34.0",
-  "eslint": "^9.28.0",
-  "eslint-config-prettier": "^10.1.5",
-  "eslint-plugin-prettier": "^5.4.1",
-  "nodemon": "^3.1.10",
-  "prettier": "^3.5.3",
-  "prisma": "^6.12.0",
-  "ts-node": "^10.9.2",
-  "ts-node-dev": "^2.0.0",
-  "typescript": "^5.8.3"
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "dist/src/app.js",
+  "scripts": {
+    "start": "node dist/src/app.js",
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn src/app.ts",
+    "seed": "node dist/prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "twilio": "^5.7.1",
+    "zod": "^3.25.57"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^22.15.30",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.5.3",
+    "prisma": "^6.12.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
+  }
 }
