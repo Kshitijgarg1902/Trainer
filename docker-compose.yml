@@ -9,6 +9,17 @@ services:
     ports:
       - "5432:5432"
 
+  services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
   server:
     build:
       context: ./Server
@@ -22,6 +33,15 @@ services:
       - "1234:1234"
     depends_on:
       - postgres
+
+  client:
+    build:
+      context: ./Client
+    container_name: client
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
 
   client:
     build:
