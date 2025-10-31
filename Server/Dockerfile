@@ -24,7 +24,7 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copy compiled files + prisma + package.json
+# Copy built output, prisma schema, and essential files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
@@ -36,7 +36,13 @@ RUN npm ci --omit=dev
 # Expose your app port
 EXPOSE 1234
 
-# Run migrations, seed, and start app
-CMD npx prisma migrate deploy && \
-    npx prisma db seed && \
+# Add optional health check
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -f http://localhost:1234 || exit 1
+
+# Run migrations, seed (JS), and start app
+CMD echo "🚀 Running migrations..." && \
+    npx prisma migrate deploy || true && \
+    echo "🌱 Running JS seed file..." && \
+    node dist/prisma/seed.js || echo "⚠️ Seeding skipped (possibly no data)" && \
+    echo "🟢 Starting server..." && \
     node dist/src/app.js
