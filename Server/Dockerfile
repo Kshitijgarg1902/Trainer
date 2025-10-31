@@ -1,36 +1,42 @@
-# ---------- BUILD STAGE ----------
+# ---------- 1️⃣ Build Stage ----------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy dependency files
 COPY package*.json ./
-RUN npm install
 
-# Copy all project files
+# Install dependencies (including dev)
+RUN npm ci
+
+# Copy entire source code
 COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build TypeScript project (creates /dist)
+# Build TypeScript → JavaScript
 RUN npm run build
 
-# ---------- RUN STAGE ----------
-FROM node:20-alpine
+
+# ---------- 2️⃣ Production Stage ----------
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copy only necessary files from builder
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
+# Copy compiled files + prisma + package.json
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Environment variables are handled by docker-compose / CI secrets
+# Install only production dependencies
+RUN npm ci --omit=dev
+
+# Expose your app port
 EXPOSE 1234
 
-# Run Prisma migrations, seed, and start the app
+# Run migrations, seed, and start app
 CMD npx prisma migrate deploy && \
     npx prisma db seed && \
     node dist/src/app.js
