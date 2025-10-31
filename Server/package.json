@@ -8,7 +8,7 @@
     "dev": "nodemon src/app.ts",
     "start": "node dist/src/app.js",
     "migrate": "npx prisma migrate deploy",
-    "seed": "ts-node prisma/seed.ts",
+    "seed": "node dist/prisma/seed.js",
     "test-server": "node test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
