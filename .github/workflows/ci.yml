@@ -42,20 +42,18 @@ jobs:
           docker compose --env-file .env build
           docker compose --env-file .env up -d
 
-      - name: ⏱ Wait for server to start
-        working-directory: ${{ github.workspace }}
+      - name: 🕐 Wait for server to start
         run: |
           echo "🕐 Waiting for server to start..."
-          for i in {1..20}; do
-            sleep 5
-            if curl -s http://localhost:1234 > /dev/null; then
+          for i in {1..5}; do
+            if curl -s http://localhost:1234/health; then
               echo "✅ Server is up!"
               exit 0
             fi
-            echo "⏳ Still waiting... ($i/20)"
+            echo "⏳ Still waiting... ($i/5)"
+            sleep 2
           done
           echo "❌ Server failed to start"
-          docker compose logs
           exit 1
 
       - name: 🧹 Stop and clean up containers
