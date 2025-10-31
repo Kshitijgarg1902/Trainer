@@ -1,36 +1,48 @@
-# Stage 1: Build
-FROM node:20-alpine AS build
+# -------------------------------
+# Stage 1: Build the application
+# -------------------------------
+FROM node:20-alpine AS builder
 
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package files and install dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the code
+# Copy the rest of the source code
 COPY . .
 
-# ✅ Generate Prisma client before TypeScript build
+# Install TypeScript and ts-node globally for seed + Prisma
+RUN npm install -g ts-node typescript
+
+# Generate Prisma client
 RUN npx prisma generate
 
-# Build TypeScript (if you have a build script)
+# Build the project (transpile TS -> JS)
 RUN npm run build
 
-# Stage 2: Run
+# -------------------------------
+# Stage 2: Run the production build
+# -------------------------------
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy built files and dependencies from build stage
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/package*.json ./
+# Copy only the built code and node_modules from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
 
-# Expose server port
+# Install ts-node for Prisma seed scripts
+RUN npm install -g ts-node typescript
+
+# Expose the app port
 EXPOSE 1234
 
-# ✅ Run migrations, seed, and start server
-CMD sh -c "npx prisma migrate deploy && npx ts-node prisma/seed.ts && npm run dev"
+# Environment
+ENV NODE_ENV=production
+
+# Run database migrations + seed + start the server
+CMD npx prisma migrate deploy && npx prisma db seed && node dist/app.js
