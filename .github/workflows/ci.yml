@@ -46,15 +46,17 @@ jobs:
         run: |
           echo "🕐 Waiting for server to start..."
           for i in {1..5}; do
-            if curl -s http://localhost:1234/health; then
+            sleep 2
+            if curl -s http://localhost:1234/health > /dev/null; then
               echo "✅ Server is up!"
               exit 0
             fi
             echo "⏳ Still waiting... ($i/5)"
-            sleep 2
           done
           echo "❌ Server failed to start"
+          docker compose logs server
           exit 1
+
 
       - name: 🧹 Stop and clean up containers
         if: always()
