@@ -1,0 +1,36 @@
+name: CI - Build and Run Docker Compose
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Pull your code from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up Docker (Buildx gives caching & multi-arch builds)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3️⃣ Build all images defined in docker-compose
+      - name: Build docker-compose services
+        run: docker compose build
+
+      # 4️⃣ Start containers in detached mode
+      - name: Run containers
+        run: docker compose up -d
+
+      # 5️⃣ Check they are running
+      - name: Check running containers
+        run: docker ps
+
+      # 6️⃣ Optionally, view logs (useful for debugging)
+      - name: Show logs
+        run: docker compose logs --tail=50

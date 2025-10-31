@@ -1,0 +1,157 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id Int @id@default(autoincrement())
+  username String
+  mobileNumber String @unique
+  countryCode String @db.VarChar(10)
+  gender String 
+  height Int
+  age Int
+  weight Decimal @db.Decimal(10, 1) 
+  created_at DateTime @default(now())
+  updated_at DateTime?
+
+  workouts WorkoutLog[]
+  sets Set[]
+  exercise Exercise[]
+  templates Template[]
+  refresh_tokens RefreshToken[]
+}
+
+model WorkoutLog {
+  id Int @id@default(autoincrement())
+  userId Int
+  duration_minutes Int
+  notes String?
+  created_at DateTime @default(now())
+  updated_at DateTime?
+
+  exerciseslog ExerciseLog[]
+
+  user User @relation(fields: [userId], references: [id])
+
+}
+
+model ExerciseLog {
+ id Int @id@default(autoincrement())
+ workoutLogId Int 
+ exerciseId Int
+ order Int
+ notes String?
+ created_at DateTime @default(now())
+ updated_at DateTime?
+
+ @@unique([workoutLogId,order])
+
+ sets Set[]
+
+ workoutlog WorkoutLog @relation(fields: [workoutLogId], references: [id])
+ exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+}
+
+enum SetType {
+  W
+  F
+  N
+}
+
+model Set {
+  id Int @id@default(autoincrement())
+  exercise_log_id Int
+  exerciseId Int
+  userId Int
+  set_number Int
+  reps Int
+  weight Int
+  type SetType @default(N)
+  created_at DateTime @default(now())
+  updated_at DateTime?
+
+  @@unique([exercise_log_id,set_number])
+
+  user User @relation(fields: [userId],references: [id])
+  exerciselog ExerciseLog  @relation(fields: [exercise_log_id],references: [id])
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+enum ExerciseCategory {
+  Chest
+  Back
+  Legs
+  Shoulders
+  Biceps
+  Triceps
+  Core
+}
+
+model Exercise {
+  id Int @id@default(autoincrement())
+  userId Int 
+  name String
+  category ExerciseCategory
+  equipment String?
+  created_at DateTime @default(now())
+  updated_at DateTime?
+
+  exercise_logs ExerciseLog[]
+
+  user User @relation(fields: [userId],references: [id])
+  @@unique([userId, name, equipment])
+
+  Set Set[]
+}
+
+model Template {
+ id Int @id@default(autoincrement())
+ userId Int
+ template Json
+ created_at DateTime @default(now())
+ updated_at DateTime?
+
+ user User @relation(fields: [userId],references: [id])
+}
+
+model OtpRequest {
+  id Int  @id @default(autoincrement())
+  mobileNumber String
+  countryCode String
+  otp String
+  expires_at DateTime
+  used Boolean  @default(false)
+  username String?
+  gender String?
+  height Int?
+  age Int?
+  weight Decimal? @db.Decimal(10, 1) 
+  createdAt DateTime @default(now())
+  updatedAt  DateTime?
+
+  @@index([mobileNumber, countryCode])
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  userId     Int
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+
+
+
+
+
