@@ -3,13 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files
+# Copy dependencies
 COPY package*.json ./
 
 # Install dependencies (including dev)
 RUN npm ci
 
-# Copy everything
+# Copy the whole project
 COPY . .
 
 # Generate Prisma client
@@ -24,27 +24,24 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Copy built files, Prisma schema, and production dependencies
+# Copy built files and Prisma schema
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
 
-# Install only production deps
+# Install only production dependencies (this time includes @prisma/client)
 RUN npm ci --omit=dev
 
-# Install Prisma CLI globally (fixes the “not found” issue)
-RUN npm install -g prisma
+# Generate Prisma client again (since node_modules is new)
+RUN npx prisma generate
 
-# Expose app port
+# Expose port
 EXPOSE 1234
 
-# Healthcheck (optional)
-HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD wget -qO- http://localhost:1234 || exit 1
-
-# Run migrations, seed, then start
+# Run migrations + seed + start server
 CMD echo "🚀 Running migrations..." && \
-    prisma migrate deploy && \
-    echo "🌱 Running seed (JS)..." && \
+    npx prisma migrate deploy && \
+    echo "🌱 Seeding database..." && \
     node dist/prisma/seed.js || echo "⚠️ Seed failed/skipped" && \
     echo "🟢 Starting server..." && \
     node dist/src/app.js
