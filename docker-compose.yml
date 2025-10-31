@@ -1,7 +1,10 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:15
     container_name: postgres
+    env_file: .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -15,13 +18,11 @@ services:
     build:
       context: ./Server
     container_name: server
+    env_file: .env
     ports:
       - "1234:1234"
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
       PORT: 1234
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
@@ -33,6 +34,7 @@ services:
     build:
       context: ./Client
     container_name: client
+    env_file: .env
     ports:
       - "3000:80"
     depends_on:
