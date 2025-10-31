@@ -1,57 +1,72 @@
-name: CI Build and Test
+name: CI Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      docker:
+        image: docker:24.0.5-dind
+        privileged: true
+
     steps:
-      # Step 1: Checkout your repo
-      - name: Checkout code
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Docker
-      - name: Set up Docker Buildx
+      - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 3: Create .env file for server
-      # (since GitHub Actions doesn’t have your local .env)
-      - name: Create .env for server
+      - name: 🔑 Log in to GitHub Container Registry (optional)
+        if: false
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⚙️ Create environment file for server
         run: |
           mkdir -p Server
-          echo "PORT=1234" >> Server/.env
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> Server/.env
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> Server/.env
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> Server/.env
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> Server/.env
+          echo "PORT=1234" >> Server/.env
+          echo "REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}" >> Server/.env
+          echo "ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_TOKEN_SECRET }}" >> Server/.env
+          echo "NODE_ENV=production" >> Server/.env
 
-      # Step 4: Build and start containers
-      - name: Build and start containers
+      - name: ⚙️ Create environment file for client
         run: |
-          docker compose up -d --build
+          mkdir -p Client
+          echo "REACT_APP_API_URL=http://server:1234/" >> Client/.env
+
+      - name: 🐋 Build and start containers
+        run: |
+          docker compose build
+          docker compose up -d
+
+      - name: ⏱ Wait for server to start
+        run: |
           echo "🕐 Waiting for server to start..."
-          for i in {1..15}; do
-            if curl -f http://localhost:1234 >/dev/null 2>&1; then
+          for i in {1..20}; do
+            sleep 5
+            if curl -s http://localhost:1234 > /dev/null; then
               echo "✅ Server is up!"
               exit 0
             fi
-            echo "⏳ Still waiting... ($i/15)"
-            sleep 5
+            echo "⏳ Still waiting... ($i/20)"
           done
-          echo "❌ Server failed to start in time. Printing logs..."
-          docker compose logs server
+          echo "❌ Server failed to start"
+          docker compose logs
           exit 1
 
-      # Step 5: Check running containers
-      - name: List running containers
-        run: docker ps -a
-
-      # Step 6: Stop containers after test
-      - name: Shut down Docker Compose
+      - name: 🧹 Stop and clean up containers
         if: always()
-        run: docker compose down
+        run: docker compose down -v
