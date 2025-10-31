@@ -1,36 +1,54 @@
-name: CI - Build and Run Docker Compose
+name: CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Pull your code from GitHub
+      # 🧾 Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Docker (Buildx gives caching & multi-arch builds)
+      # 🧰 Step 2: Set up Docker Buildx (modern builder)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3️⃣ Build all images defined in docker-compose
-      - name: Build docker-compose services
-        run: docker compose build
+      # 🐳 Step 3: Build and run the Docker containers
+      - name: Build and Run Containers
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🚀 Starting Docker Compose build..."
+          docker compose build
+          echo "✅ Build complete, starting containers..."
+          docker compose up -d
 
-      # 4️⃣ Start containers in detached mode
-      - name: Run containers
-        run: docker compose up -d
+      # ⏱ Step 4: Wait a few seconds for services to boot
+      - name: Wait for containers to start
+        run: |
+          sleep 10
+          docker ps
 
-      # 5️⃣ Check they are running
-      - name: Check running containers
-        run: docker ps
+      # 🧪 Step 5 (optional): Run sanity check on server
+      - name: Check server health
+        run: |
+          echo "🌐 Checking if server is running..."
+          curl --fail http://localhost:1234 || (echo "❌ Server not reachable" && exit 1)
 
-      # 6️⃣ Optionally, view logs (useful for debugging)
-      - name: Show logs
-        run: docker compose logs --tail=50
+      # 🧹 Step 6: Shut down and clean up
+      - name: Stop and clean up containers
+        if: always()
+        run: |
+          echo "🧹 Cleaning up containers..."
+          docker compose down -v
