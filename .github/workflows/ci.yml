@@ -17,8 +17,7 @@ jobs:
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ✅ Create .env file for Docker Compose (used by all services)
-      - name: 🧩 Create root .env file for Compose
+      - name: 🧩 Create root .env file for Docker Compose
         run: |
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
@@ -27,17 +26,10 @@ jobs:
           echo "REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}" >> .env
           echo "ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_TOKEN_SECRET }}" >> .env
 
-      - name: ⚙️ Create environment file for server
+      - name: 🧾 Print .env (partial check)
         run: |
-          mkdir -p Server
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> Server/.env
-          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> Server/.env
-          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> Server/.env
-          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> Server/.env
-          echo "PORT=1234" >> Server/.env
-          echo "REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}" >> Server/.env
-          echo "ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_TOKEN_SECRET }}" >> Server/.env
-          echo "NODE_ENV=production" >> Server/.env
+          echo "Contents of .env (safe check):"
+          cat .env | grep -v PASSWORD | grep -v SECRET
 
       - name: ⚙️ Create environment file for client
         run: |
@@ -45,11 +37,13 @@ jobs:
           echo "REACT_APP_API_URL=http://server:1234/" >> Client/.env
 
       - name: 🐋 Build and start containers
+        working-directory: ${{ github.workspace }}
         run: |
           docker compose --env-file .env build
           docker compose --env-file .env up -d
 
       - name: ⏱ Wait for server to start
+        working-directory: ${{ github.workspace }}
         run: |
           echo "🕐 Waiting for server to start..."
           for i in {1..20}; do
