@@ -1,54 +1,57 @@
-name: CI Pipeline
+name: CI Build and Test
 
 on:
   push:
     branches:
       - main
   pull_request:
-    branches:
-      - main
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # 🧾 Step 1: Checkout the repository
-      - name: Checkout repository
+      # Step 1: Checkout your repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 🧰 Step 2: Set up Docker Buildx (modern builder)
+      # Step 2: Set up Docker
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 🐳 Step 3: Build and run the Docker containers
-      - name: Build and Run Containers
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Step 3: Create .env file for server
+      # (since GitHub Actions doesn’t have your local .env)
+      - name: Create .env for server
         run: |
-          echo "🚀 Starting Docker Compose build..."
-          docker compose build
-          echo "✅ Build complete, starting containers..."
-          docker compose up -d
+          mkdir -p Server
+          echo "PORT=1234" >> Server/.env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> Server/.env
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> Server/.env
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> Server/.env
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> Server/.env
 
-      # ⏱ Step 4: Wait a few seconds for services to boot
-      - name: Wait for containers to start
+      # Step 4: Build and start containers
+      - name: Build and start containers
         run: |
-          sleep 10
-          docker ps
+          docker compose up -d --build
+          echo "🕐 Waiting for server to start..."
+          for i in {1..15}; do
+            if curl -f http://localhost:1234 >/dev/null 2>&1; then
+              echo "✅ Server is up!"
+              exit 0
+            fi
+            echo "⏳ Still waiting... ($i/15)"
+            sleep 5
+          done
+          echo "❌ Server failed to start in time. Printing logs..."
+          docker compose logs server
+          exit 1
 
-      # 🧪 Step 5 (optional): Run sanity check on server
-      - name: Check server health
-        run: |
-          echo "🌐 Checking if server is running..."
-          curl --fail http://localhost:1234 || (echo "❌ Server not reachable" && exit 1)
+      # Step 5: Check running containers
+      - name: List running containers
+        run: docker ps -a
 
-      # 🧹 Step 6: Shut down and clean up
-      - name: Stop and clean up containers
+      # Step 6: Stop containers after test
+      - name: Shut down Docker Compose
         if: always()
-        run: |
-          echo "🧹 Cleaning up containers..."
-          docker compose down -v
+        run: docker compose down
